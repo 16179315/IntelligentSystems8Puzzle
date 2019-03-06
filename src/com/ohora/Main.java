@@ -1,50 +1,49 @@
 package com.ohora;
 
-import jdk.nashorn.internal.scripts.JO;
-
 import javax.swing.JOptionPane;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 public class Main {
 
     // TODO update size so that puzzle can be any size
     public static final int NUMBER_OF_ROWS = 3;
     public static final int SIZE_OF_PUZZLE = NUMBER_OF_ROWS*NUMBER_OF_ROWS;
+
     public static int[] squaresAtMiddleOfPuzzle = new int[SIZE_OF_PUZZLE - 4*(NUMBER_OF_ROWS-1)];
     private static int[]squaresAtRow1OfPuzzle = new int[SIZE_OF_PUZZLE];
-    public static int[] squaresAtRowLastOfPuzzle= new int[SIZE_OF_PUZZLE];;
-    public static int[] squaresAtColumn1OfPuzzle= new int[SIZE_OF_PUZZLE];;
-    public static int[] squaresAtColumnLastOfPuzzle= new int[SIZE_OF_PUZZLE];;
+    public static int[] squaresAtRowLastOfPuzzle= new int[SIZE_OF_PUZZLE];
+    public static int[] squaresAtColumn1OfPuzzle= new int[SIZE_OF_PUZZLE];
+    public static int[] squaresAtColumnLastOfPuzzle= new int[SIZE_OF_PUZZLE];
+
+    public static int[] startState = new int[SIZE_OF_PUZZLE];
+    public static int[] endState = new int[SIZE_OF_PUZZLE];
 
     public static void main(String[] args) {
-
-        int[] startState = new int[SIZE_OF_PUZZLE];
-        int[] endState = new int[SIZE_OF_PUZZLE];
+        findLocationOfUsefulPieces();
 
         startState = receiveInput("start");
         endState = receiveInput("end");
 
-
-        findAllSquaresAtMiddleOfPuzzle();
         Integer[] possibleSwaps = findPossibleSwaps(startState);
         displayPossibleMovements(possibleSwaps);
         // calculate h(distances of tiles from their pos) function of each movement
-        // display possible
     }
 
+    /**
+     * Loops through available movements and displays possible movements in JOptionPane
+     * @param possibleSwaps
+     */
     private static void displayPossibleMovements(Integer[] possibleSwaps) {
         String outputString = "";
         for(int i=0;i<possibleSwaps.length;i++){
             if(possibleSwaps[i] != null){
                 switch(i){
-                    case(0): outputString += displayPossibleMovement(possibleSwaps[i],"South"); break;
-                    case(1): outputString += displayPossibleMovement(possibleSwaps[i],"West"); break;
-                    case(2): outputString += displayPossibleMovement(possibleSwaps[i],"North"); break;
-                    case(3): outputString += displayPossibleMovement(possibleSwaps[i],"East"); break;
+                    case(0): outputString += formatPossibleMovementForDisplay(possibleSwaps[i],"South"); break;
+                    case(1): outputString += formatPossibleMovementForDisplay(possibleSwaps[i],"West"); break;
+                    case(2): outputString += formatPossibleMovementForDisplay(possibleSwaps[i],"North"); break;
+                    case(3): outputString += formatPossibleMovementForDisplay(possibleSwaps[i],"East"); break;
                 }
             }
         }
@@ -52,12 +51,21 @@ public class Main {
 
     }
 
-    private static String displayPossibleMovement(Integer possibleSwap, String direction) {
-        //TODO get state[possibleSwap] not just index of possible swap
-        return "Can move " + String.valueOf(possibleSwap) + " to the " + direction + "\n";
+    /**
+     * Reformats the possible movement for the output dialogue
+     * @param possibleSwap
+     * @param direction
+     * @return
+     */
+    private static String formatPossibleMovementForDisplay(Integer possibleSwap, String direction) {
+        return "Can move " + String.valueOf(startState[possibleSwap]) + " to the " + direction + "\n";
     }
 
-    private static void findAllSquaresAtMiddleOfPuzzle() {
+    /**
+     * Based on the size of the array locates the middle corner and all side pieces of the puzzle
+     * Required for the checking of legal moves
+     */
+    private static void findLocationOfUsefulPieces() {
         int[] puzzle = new int[SIZE_OF_PUZZLE];
 
         int row = 0;
@@ -67,7 +75,6 @@ public class Main {
         int rowLastIndex = 0;
         int col1Index = 0;
         int colLastIndex = 0;
-
 
         for(int i =0;i<=SIZE_OF_PUZZLE;i+=NUMBER_OF_ROWS){
             row++;
@@ -104,6 +111,16 @@ public class Main {
     }
 
 
+    /**
+     * Returns the index of the possible movements of the black tile for the given state
+     * 0th index North
+     * 1st Index West
+     * 2nd Index South
+     * 3rd Index East
+     * Any non possible movements will be null
+     * @param state
+     * @return
+     */
     private static Integer[] findPossibleSwaps(int[] state) {
         int indexOfZero = findIndexOfZeroInState(state);
         Integer[] possibleSwaps = new Integer[4];
@@ -136,6 +153,11 @@ public class Main {
         return possibleSwaps;
     }
 
+    /**
+     * Checks where the blank tile is located in the given state
+     * @param state
+     * @return
+     */
     private static int findIndexOfZeroInState(int[] state) {
         int index = 0;
         for(int i =0;i<state.length;i++){
@@ -147,6 +169,12 @@ public class Main {
         return index;
     }
 
+    /**
+     * Checks if the blank tile is located in the array(eg. the fist row)
+     * @param indexOfZero
+     * @param arrayToBeSearched
+     * @return
+     */
     private static boolean zeroIsContainedInGivenArray(int indexOfZero,int[] arrayToBeSearched) {
         boolean contains=false;
         for(int i =0;i<arrayToBeSearched.length;i++){
