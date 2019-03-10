@@ -2,6 +2,7 @@ package com.ohora;
 
 import javax.swing.JOptionPane;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -11,7 +12,6 @@ public class Main {
     public static final int NUMBER_OF_ROWS = 3;
     public static final int SIZE_OF_PUZZLE = NUMBER_OF_ROWS*NUMBER_OF_ROWS;
 
-    public static int[] squaresAtMiddleOfPuzzle = new int[SIZE_OF_PUZZLE - 4*(NUMBER_OF_ROWS-1)];
     private static int[]squaresAtRow1OfPuzzle = new int[SIZE_OF_PUZZLE];
     public static int[] squaresAtRowLastOfPuzzle= new int[SIZE_OF_PUZZLE];
     public static int[] squaresAtColumn1OfPuzzle= new int[SIZE_OF_PUZZLE];
@@ -26,9 +26,55 @@ public class Main {
         startState = receiveInput("start");
         endState = receiveInput("end");
 
+        //determineIfStatesSolvable();
+
         Integer[] possibleSwaps = findPossibleSwaps(startState);
+        HashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
         displayPossibleMovements(possibleSwaps);
         // calculate h(distances of tiles from their pos) function of each movement
+    }
+
+    private static HashMap<Integer, Integer> calculateHValueOfPossibleMovements(Integer[] possibleSwaps) {
+        //TODO will have to update to apply to current state not just start
+        HashMap<Integer,Integer> possibleMovementsWithHValue = new HashMap<>();
+        for(int i =0;i<possibleSwaps.length;i++){
+            if(possibleSwaps[i] != null){
+                    int[] appliedState = applyPossibleSwapToStartState(possibleSwaps[i]);
+                    int hValueForState = calculateHForStateAgainstEndState(appliedState);
+//                    possibleMovementsWithH.put() calculateHForstate()
+            }
+        }
+        return possibleMovementsWithHValue;
+    }
+
+    private static int calculateHForStateAgainstEndState(int[] appliedState) {
+
+        int hValue = 0;
+        int tempHValue = 0;
+        boolean foundComparingValue = false;
+
+        for(int i =0; i < SIZE_OF_PUZZLE;i++){
+            int comparingValue = appliedState[i];
+            for(int j =0;j< SIZE_OF_PUZZLE || !foundComparingValue;j++){
+                if(comparingValue == endState[j]){
+                    foundComparingValue = true;
+                }
+                tempHValue++;
+            }
+            hValue+= tempHValue;
+            foundComparingValue = false;
+        }
+        return hValue;
+    }
+
+    private static int[] applyPossibleSwapToStartState(Integer possibleSwap) {
+        int[] state = startState.clone();
+        int temp = 0;
+        int indexOfZero = findIndexOfZeroInState(startState);
+        temp = startState[possibleSwap];
+        state[possibleSwap] = 0;
+        state[indexOfZero] = temp;
+        return state;
     }
 
     /**
@@ -48,7 +94,6 @@ public class Main {
             }
         }
         JOptionPane.showMessageDialog(null, outputString, "Available Moves", JOptionPane.INFORMATION_MESSAGE);
-
     }
 
     /**
@@ -62,15 +107,14 @@ public class Main {
     }
 
     /**
-     * Based on the size of the array locates the middle corner and all side pieces of the puzzle
-     * Required for the checking of legal moves
+     * Based on the size of the array locates the locations of the pieces in the first and last row and column
+     * Required for the checking what are the next possible legal moves
      */
     private static void findLocationOfUsefulPieces() {
         int[] puzzle = new int[SIZE_OF_PUZZLE];
 
         int row = 0;
         int col = 0;
-        int middleSqaureIndex = 0;
         int row1Index = 0;
         int rowLastIndex = 0;
         int col1Index = 0;
@@ -81,10 +125,6 @@ public class Main {
             for(int j = i; j<= NUMBER_OF_ROWS-1+i && j != SIZE_OF_PUZZLE; j++){
                 col++;
                 //System.out.print("i:" + String.valueOf(i) + " j:" + String.valueOf(j)+  " " +String.valueOf(puzzle[j]) + " ");
-                if(!(row == 1 || row == NUMBER_OF_ROWS || col == 1 || col ==NUMBER_OF_ROWS)){
-                    squaresAtMiddleOfPuzzle[middleSqaureIndex] = j;
-                    middleSqaureIndex++;
-                }
                 if(row == 1){
                     squaresAtRow1OfPuzzle[row1Index] = j;
                     row1Index++;
@@ -101,8 +141,6 @@ public class Main {
                     squaresAtColumnLastOfPuzzle[colLastIndex] = j;
                     colLastIndex++;
                 }
-
-
             }
             col=0;
            // System.out.print("\n");
@@ -124,12 +162,6 @@ public class Main {
     private static Integer[] findPossibleSwaps(int[] state) {
         int indexOfZero = findIndexOfZeroInState(state);
         Integer[] possibleSwaps = new Integer[4];
-        if (zeroIsContainedInGivenArray(indexOfZero,squaresAtMiddleOfPuzzle)) {
-            possibleSwaps[3] = indexOfZero - 1;
-            possibleSwaps[1] = indexOfZero + 1;
-            possibleSwaps[2] = indexOfZero + NUMBER_OF_ROWS;
-            possibleSwaps[0] = indexOfZero - NUMBER_OF_ROWS;
-        }
         if(zeroIsContainedInGivenArray(indexOfZero,squaresAtColumn1OfPuzzle)){
             possibleSwaps[1] = indexOfZero + 1;
         }
