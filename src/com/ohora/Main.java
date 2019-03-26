@@ -96,44 +96,31 @@ public class Main {
     }
 
     private static int calculateIndividualTileHValue(int tile, int[][] convertedAppliedState) {
-        //TODO restrcutue to have one index or get diff in indexs in one method
-        int xindexOfTileEndState = getIndexXOfTile(tile,endStateMatrix);
-        int yindexOfTileEndState = getIndexYOfTile(tile,endStateMatrix);
-        int xindexOfTileAppliedState = getIndexXOfTile(tile,convertedAppliedState);
-        int yindexOfTileAppliedState = getIndexYOfTile(tile, convertedAppliedState);
+        int xindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"x");
+        int yindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"y");
+        int xindexOfTileAppliedState = getIndexOfTile(tile,convertedAppliedState,"x");
+        int yindexOfTileAppliedState = getIndexOfTile(tile, convertedAppliedState,"y");
         int diff1 = Math.abs(xindexOfTileAppliedState - xindexOfTileEndState);
         int diff2 = Math.abs(yindexOfTileEndState - yindexOfTileAppliedState);
         return diff1+diff2;
     }
 
     /**
-     * Returns the x co ord of the designated tile
+     * Returns the desired  co ord of the designated tile
      * @param tile
      * @param stateMatrix
      * @return
      */
-    private static int getIndexXOfTile(int tile, int[][] stateMatrix) {
+    private static int getIndexOfTile(int tile, int[][] stateMatrix,String coOrd) {
         for(int i = 0;i<NUMBER_OF_ROWS;i++){
             for(int j = 0;j<NUMBER_OF_ROWS;j++){
                 if(stateMatrix[i][j] == tile){
-                    return(i);
-                }
-            }
-        }
-        return 0;
-    }
-
-    /**
-     * Returns the y co ord of the designated tile
-     * @param tile
-     * @param stateMatrix
-     * @return
-     */
-    private static int getIndexYOfTile(int tile, int[][] stateMatrix) {
-        for(int i = 0;i<NUMBER_OF_ROWS;i++){
-            for(int j = 0;j<NUMBER_OF_ROWS;j++){
-                if(stateMatrix[i][j] == tile){
-                    return(j);
+                    if(coOrd == "x"){
+                        return i;
+                    }
+                    else{
+                        return j;
+                    }
                 }
             }
         }
