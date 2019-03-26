@@ -24,12 +24,15 @@ public class Main {
         startState = receiveInput("start");
         endState = receiveInput("end");
 
+
         endStateMatrix = convertToMatrix(endState);
 
-        //determineIfStatesSolvable();
+//        int[] test = {0,1,2,3,4,5,6,7,8};
+//        System.out.println(calculateHForStateAgainstEndState(test));
+
 
         Integer[] possibleSwaps = findPossibleSwaps(startState);
-        HashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
+        LinkedHashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
         displayPossibleMovements(possibleMovementsWithH);
     }
 
@@ -59,9 +62,9 @@ public class Main {
      * @param possibleSwaps
      * @return
      */
-    private static HashMap<Integer, Integer> calculateHValueOfPossibleMovements(Integer[] possibleSwaps) {
+    private static LinkedHashMap<Integer, Integer> calculateHValueOfPossibleMovements(Integer[] possibleSwaps) {
         //TODO will have to update to apply to current state not just start
-        HashMap<Integer,Integer> possibleMovementsWithHValue = new HashMap<>();
+        LinkedHashMap<Integer,Integer> possibleMovementsWithHValue = new LinkedHashMap<>();
         for(int i =0;i<possibleSwaps.length;i++){
             if(possibleSwaps[i] != null){
                     int[] appliedState = applyPossibleSwapToStartState(possibleSwaps[i]);
@@ -69,7 +72,8 @@ public class Main {
                     possibleMovementsWithHValue.put(possibleSwaps[i],hValueForState);
             }
             else{
-                possibleMovementsWithHValue.put(null,null);
+                //no possible movement, used sizeofpuzzle as cant have two identical keys
+                possibleMovementsWithHValue.put(SIZE_OF_PUZZLE+i,null);
             }
         }
         return possibleMovementsWithHValue;
@@ -81,36 +85,61 @@ public class Main {
      * @return
      */
     private static int calculateHForStateAgainstEndState(int[] appliedState) {
-
         int hValue = 0;
         int[][] convertedAppliedState = convertToMatrix(appliedState);
 
         //for each tile in puzzle
         for(int tile =0;tile<SIZE_OF_PUZZLE;tile++){
-            int indexOfTileEndState = getIndexOfTile(tile,endStateMatrix);
-            int indexOfTileAppliedState = getIndexOfTile(tile,convertedAppliedState);
-            hValue += Math.abs(indexOfTileAppliedState - indexOfTileEndState);
+            hValue += calculateIndividualTileHValue(tile,convertedAppliedState);
         }
-
         return hValue;
     }
 
+    private static int calculateIndividualTileHValue(int tile, int[][] convertedAppliedState) {
+        //TODO restrcutue to have one index or get diff in indexs in one method
+        int xindexOfTileEndState = getIndexXOfTile(tile,endStateMatrix);
+        int yindexOfTileEndState = getIndexYOfTile(tile,endStateMatrix);
+        int xindexOfTileAppliedState = getIndexXOfTile(tile,convertedAppliedState);
+        int yindexOfTileAppliedState = getIndexYOfTile(tile, convertedAppliedState);
+        int diff1 = Math.abs(xindexOfTileAppliedState - xindexOfTileEndState);
+        int diff2 = Math.abs(yindexOfTileEndState - yindexOfTileAppliedState);
+        return diff1+diff2;
+    }
+
     /**
-     * Returns the sum of the index of the tile in the passed matrix eg (2,2) = 4
+     * Returns the x co ord of the designated tile
      * @param tile
      * @param stateMatrix
      * @return
      */
-    private static int getIndexOfTile(int tile, int[][] stateMatrix) {
+    private static int getIndexXOfTile(int tile, int[][] stateMatrix) {
         for(int i = 0;i<NUMBER_OF_ROWS;i++){
             for(int j = 0;j<NUMBER_OF_ROWS;j++){
                 if(stateMatrix[i][j] == tile){
-                    return(i+j);
+                    return(i);
                 }
             }
         }
         return 0;
     }
+
+    /**
+     * Returns the y co ord of the designated tile
+     * @param tile
+     * @param stateMatrix
+     * @return
+     */
+    private static int getIndexYOfTile(int tile, int[][] stateMatrix) {
+        for(int i = 0;i<NUMBER_OF_ROWS;i++){
+            for(int j = 0;j<NUMBER_OF_ROWS;j++){
+                if(stateMatrix[i][j] == tile){
+                    return(j);
+                }
+            }
+        }
+        return 0;
+    }
+
 
     /**
      * Returns the puzzle state if the passed swap index was applied
@@ -137,7 +166,7 @@ public class Main {
         Iterator<Map.Entry<Integer, Integer>> iterator = possibleSwaps.entrySet().iterator();
         while(iterator.hasNext()){
             Map.Entry<Integer, Integer> next = iterator.next();
-            if(next.getKey() != null){
+            if(next.getValue() != null){
                 switch(direction){
                     case(0): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"South"); break;
                     case(1): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"West"); break;
@@ -149,6 +178,13 @@ public class Main {
         }
         JOptionPane.showMessageDialog(null, outputString, "Available Moves", JOptionPane.INFORMATION_MESSAGE);
     }
+
+
+
+
+
+
+
 
     /**
      * Reformats the possible movement for the output dialogue
