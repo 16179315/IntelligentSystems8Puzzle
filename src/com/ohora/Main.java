@@ -1,9 +1,7 @@
-package com.ohora;
-
 import javax.swing.JOptionPane;
 import java.util.*;
 
-public class Main {
+public class is16179315 {
 
     // TODO update size so that puzzle can be any size
     public static final int NUMBER_OF_ROWS = 3;
@@ -19,6 +17,7 @@ public class Main {
     public static int[][] endStateMatrix = new int[NUMBER_OF_ROWS][NUMBER_OF_ROWS];
 
     public static void main(String[] args) {
+        State.setCurrentIdCount(0);
         findLocationOfUsefulPieces();
 
         startState = receiveInput("start");
@@ -27,14 +26,103 @@ public class Main {
 
         endStateMatrix = convertToMatrix(endState);
 
+        runAlgorithm();
+
 //        int[] test = {0,1,2,3,4,5,6,7,8};
 //        System.out.println(calculateHForStateAgainstEndState(test));
 
-
-        Integer[] possibleSwaps = findPossibleSwaps(startState);
-        LinkedHashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
-        displayPossibleMovements(possibleMovementsWithH);
+//        Integer[] possibleSwaps = findPossibleSwaps(startState);
+//        LinkedHashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
+//        displayPossibleMovements(possibleMovementsWithH);
     }
+
+    private static void runAlgorithm(){
+        State S = new State(startState,0);
+        S.sethValue(calculateHForStateAgainstEndState(S.getState()));
+        S.setgValue(0);
+        S.updatefValue();
+
+        int[] E = endState;
+        State C = S;
+
+        ArrayList<State> open = new ArrayList<>();
+        ArrayList<State> closed = new ArrayList<>();
+
+        while(!(Arrays.equals(C.getState(),E))){
+            ArrayList<State> X = getChildrenOfCurrentState(C);
+            addChildrenToOpenIfNotClosed(X,open,closed);
+
+            closed.add(C);
+
+            C = findMinimumfInOpen(open);
+
+            closed.add(C);
+            open.remove(C);
+        }
+
+        printOutPath(C,closed);
+
+    }
+
+    private static void addChildrenToOpenIfNotClosed(ArrayList<State> X, ArrayList<State> open, ArrayList<State> closed) {
+        for(int i = 0;i<X.size();i++){
+            boolean closedContainsState = false;
+            for(int j = 0;j<closed.size();j++){
+                if(Arrays.equals(closed.get(j).getState(),X.get(i).getState())){
+                    closedContainsState = true;
+                }
+            }
+            if(!closedContainsState){
+                open.add(X.get(i));
+            }
+        }
+    }
+
+    private static void printOutPath(State c,ArrayList<State> closed) {
+        do{
+            System.out.println(c.toString());
+            for(int i =0;i<closed.size();i++){
+                if(c.getParentId() == closed.get(i).getId()){
+                    c = closed.get(i);
+                }
+            }
+            //first state has id 1
+        }while(c.getId() != 1);
+    }
+
+    private static State findMinimumfInOpen(ArrayList<State> open) {
+        State temp = new State(null,-1);
+        temp.setfValue(Integer.MAX_VALUE);
+        for(int i=0;i<open.size();i++){
+            if(open.get(i).getfValue() < temp.getfValue()){
+                temp = open.get(i);
+            }
+        }
+
+        return temp;
+    }
+
+    private static ArrayList<State> getChildrenOfCurrentState(State currentState)
+    {
+        ArrayList<State> children = new ArrayList<>();
+        Integer[] possibleSwaps = findPossibleSwaps(currentState.getState());
+
+        for (int i = 0; i < possibleSwaps.length; i++) {
+            if (possibleSwaps[i] != null) {
+                int[] appliedState = applyPossibleSwapToCurrentState(possibleSwaps[i], currentState.getState());
+
+                State child = new State(appliedState,currentState.getId());
+                child.sethValue(calculateHForStateAgainstEndState(child.getState()));
+                child.setgValue(currentState.getgValue()+1);
+                child.updatefValue();
+
+                children.add(child);
+            }
+        }
+
+        return children;
+    }
+
 
     /**
      * Receives a state in array form and converts it to a matrix
@@ -67,9 +155,9 @@ public class Main {
         LinkedHashMap<Integer,Integer> possibleMovementsWithHValue = new LinkedHashMap<>();
         for(int i =0;i<possibleSwaps.length;i++){
             if(possibleSwaps[i] != null){
-                    int[] appliedState = applyPossibleSwapToStartState(possibleSwaps[i]);
-                    int hValueForState = calculateHForStateAgainstEndState(appliedState);
-                    possibleMovementsWithHValue.put(possibleSwaps[i],hValueForState);
+                int[] appliedState = applyPossibleSwapToStartState(possibleSwaps[i]);
+                int hValueForState = calculateHForStateAgainstEndState(appliedState);
+                possibleMovementsWithHValue.put(possibleSwaps[i],hValueForState);
             }
             else{
                 //no possible movement, used sizeofpuzzle as cant have two identical keys
@@ -142,6 +230,19 @@ public class Main {
         state[indexOfZero] = temp;
         return state;
     }
+
+
+    private static int[] applyPossibleSwapToCurrentState(Integer possibleSwap,int[] currentState) {
+        int[] state = currentState.clone();
+        int temp = 0;
+        int indexOfZero = findIndexOfZeroInState(currentState);
+        temp = currentState[possibleSwap];
+        state[possibleSwap] = 0;
+        state[indexOfZero] = temp;
+        return state;
+    }
+
+
 
     /**
      * Loops through available movements and displays possible movements in JOptionPane along with corresponding h value
@@ -220,7 +321,7 @@ public class Main {
                 }
             }
             col=0;
-           // System.out.print("\n");
+            // System.out.print("\n");
         }
 
     }
@@ -346,4 +447,100 @@ public class Main {
     }
 
 
+}
+
+class State{
+    private int[] state;
+    private int id;
+    private int parentId;
+    private static int currentIdCount;
+    private int hValue;
+    private int gValue;
+    private int fValue;
+
+    public State(int[] state, int parentId) {
+        currentIdCount++;
+        this.state = state;
+        this.id = currentIdCount;
+        this.parentId = parentId;
+
+
+    }
+
+    public static void setCurrentIdCount(int currentIdCount) {
+        State.currentIdCount = currentIdCount;
+    }
+
+    public String toString(){
+        String out = "state: " + printArray(state) + "\n";
+        out += "id:" + id + "\n";
+        out += "parentId:" + parentId + "\n";
+        out += "currentIdCount:" + currentIdCount + "\n";
+        out += "hValue:" + hValue + "\n";
+        out += "gValue:" + gValue + "\n";
+        out += "fValue:" + fValue + "\n";
+        return out;
+    }
+
+    private String printArray(int[] state) {
+        String out = "[";
+        for(int i = 0;i<state.length;i++){
+            out+=state[i] + ",";
+        }
+        out += "]";
+        return out;
+    }
+
+
+    public int getParentId() {
+        return parentId;
+    }
+
+    public void setParentId(int parentId) {
+        this.parentId = parentId;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
+    public int[] getState() {
+        return state;
+    }
+
+    public void setState(int[] state) {
+        this.state = state;
+    }
+
+    public void sethValue(int hValue) {
+        this.hValue = hValue;
+    }
+
+    public int gethValue() {
+        return hValue;
+    }
+
+    public int getgValue() {
+        return gValue;
+    }
+
+    public void setgValue(int gValue) {
+        this.gValue = gValue;
+    }
+
+    public int getfValue() {
+        return fValue;
+    }
+
+    public void setfValue(int fValue) {
+        this.fValue = fValue;
+    }
+
+    public void updatefValue() {
+        this.fValue = this.gValue+this.hValue;
+    }
 }
