@@ -1,12 +1,146 @@
 package com.ohora;
+import javafx.application.Application;
+import javafx.application.Platform;
+import javafx.scene.Scene;
+import javafx.scene.effect.DropShadow;
+import javafx.scene.layout.GridPane;
+import javafx.scene.layout.StackPane;
+import javafx.scene.paint.Color;
+import javafx.scene.shape.Rectangle;
+import javafx.scene.text.Text;
+import javafx.stage.Stage;
+
 import javax.swing.JOptionPane;
 import java.util.*;
 
-public class Main {
+public class Main extends Application {
 
     public static void main(String[] args) {
+        Application.launch(args);
+    }
+
+    @Override
+    public void start(Stage primaryStage) throws Exception {
         initialiseStateVariables();
-        runAlgorithm();
+        runAlgorithm(primaryStage);
+    }
+
+    /**
+     * Runs the A* algorithm based on the input states
+     */
+    private static void runAlgorithm(Stage primaryStage){
+        State S = new State(State.startState,null);
+        int[] E = State.endState;
+        State C = S;
+
+        ArrayList<State> open = new ArrayList<>();
+        ArrayList<State> closed = new ArrayList<>();
+
+        while(!(Arrays.equals(C.getState(),E))){
+            ArrayList<State> X = getChildrenOfCurrentState(C);
+            addChildrenToOpenIfNotClosed(X,open,closed);
+
+            closed.add(C);
+
+            C = findMinimumfInOpen(open);
+
+            closed.add(C);
+            open.remove(C);
+        }
+
+        System.out.println(printOutPath(C,closed));
+        displayGraphicPath(primaryStage);
+
+    }
+
+    private static void displayGraphicPath(Stage primaryStage) {
+        GridPane grid = new GridPane();
+        grid.setHgap(3);
+        grid.setVgap(3);
+        grid.setStyle("-fx-background-color: white;");
+
+        Scene scene = new Scene(grid,500,500);
+
+        // UI operation runs on different thread
+        Thread thread = new Thread(new Runnable() {
+
+            @Override
+            public void run() {
+                Runnable updater = new Runnable() {
+                    @Override
+                    public void run() {
+                        reDrawBoard(State.pathTaken.get(State.pathCounter),grid);
+                    }
+                };
+
+                for(int i =0;i<State.pathTaken.size();i++) {
+                    try {
+                        State.pathCounter = i;
+                        // UI update is run on the Application thread
+                        Platform.runLater(updater);
+                        Thread.sleep(450);
+                    } catch (InterruptedException ex) {
+                    }
+                }
+            }
+
+        });
+
+
+        thread.setDaemon(true);
+        thread.start();
+
+        primaryStage.setScene(scene);
+        primaryStage.setTitle("Intelligent Systems Project");
+        primaryStage.show();
+    }
+
+    private static void reDrawBoard(int[][] num,GridPane grid) {
+        final int TILE_SIZE = (500/State.NUMBER_OF_ROWS) - State.NUMBER_OF_ROWS*3 ;
+        final String FONT_SIZE = String.valueOf(TILE_SIZE/6);
+        final Color[] colors = {Color.LIGHTBLUE, Color.LIGHTGREEN, Color.LIGHTSALMON, Color.LIGHTCYAN, Color.LIGHTCORAL,Color.LIGHTGOLDENRODYELLOW};
+
+        Platform.runLater(new Runnable() {
+            @Override
+            public void run() {
+                grid.getChildren().removeAll();
+
+                for (int row = 0; row < State.NUMBER_OF_ROWS; row++) {
+                    for (int col = 0; col < State.NUMBER_OF_ROWS; col++) {
+
+                        Text text = new Text(String.valueOf(num[row][col]));
+                        text.setFill(Color.BLACK);
+                        text.setStyle("-fx-font: "+FONT_SIZE+ " arial;");
+
+                        //get color rect should be based on current text number and where that text should be
+                        int currentNumber = num[row][col];
+                        int positionInEndState = State.findPositionOfNumInEndStateMatrix(currentNumber);
+                        Color colorOfRect = colors[positionInEndState%6];
+
+                        Rectangle rect = new Rectangle(TILE_SIZE, TILE_SIZE, colorOfRect);
+                        //Setting the height and width of the arc
+                        rect.setArcWidth(30.0);
+                        rect.setArcHeight(20.0);
+
+                        //shadow
+                        rect.setStroke(Color.BLACK);
+                        rect.setStrokeWidth(2);
+                        DropShadow e = new DropShadow();
+                        e.setWidth(10);
+                        e.setHeight(10);
+                        e.setOffsetX(5);
+                        e.setOffsetY(5);
+                        e.setRadius(10);
+                        rect.setEffect(e);
+
+                        StackPane stack = new StackPane();
+                        stack.getChildren().addAll(rect, text);
+                        grid.add(stack, col, row);
+                    }
+                }
+            }
+
+        });
     }
 
     /**
@@ -113,32 +247,7 @@ public class Main {
         return true;
     }
 
-    /**
-     * Runs the A* algorithm based on the input states
-     */
-    private static void runAlgorithm(){
-        State S = new State(State.startState,null);
-        int[] E = State.endState;
-        State C = S;
 
-        ArrayList<State> open = new ArrayList<>();
-        ArrayList<State> closed = new ArrayList<>();
-
-        while(!(Arrays.equals(C.getState(),E))){
-            ArrayList<State> X = getChildrenOfCurrentState(C);
-            addChildrenToOpenIfNotClosed(X,open,closed);
-
-            closed.add(C);
-
-            C = findMinimumfInOpen(open);
-
-            closed.add(C);
-            open.remove(C);
-        }
-
-        System.out.println(printOutPath(C,closed));
-
-    }
 
     /**
      * Adds any children in X to open if they are not in closed
@@ -170,9 +279,11 @@ public class Main {
         String out = "";
         while(c.getState() != State.startState){
             out = c.toString() + out;
+            State.pathTaken.add(0,State.convertToMatrix(c.getState()));
             c = c.getParent();
         }
         out = c.toString() + out;
+        State.pathTaken.add(0,State.convertToMatrix(c.getState()));
 
         return out;
     }
@@ -301,6 +412,8 @@ public class Main {
         }
         return contains;
     }
+
+
 }
 
 class State{
@@ -318,6 +431,8 @@ class State{
     public static int[] squaresAtColumn1OfPuzzle;
     public static int[] squaresAtColumnLastOfPuzzle;
 
+    public static ArrayList<int[][]> pathTaken = new ArrayList<>();
+    public static int pathCounter = 0;
 
     //All required state data
     private int[] state;
@@ -386,6 +501,17 @@ class State{
         return matrix;
     }
 
+
+    public static int findPositionOfNumInEndStateMatrix(int num){
+        for(int i =0;i<NUMBER_OF_ROWS;i++){
+            for(int j = 0;j <NUMBER_OF_ROWS;j++){
+                if(endStateMatrix[i][j] == num){
+                    return i+j;
+                }
+            }
+        }
+        return -1;
+    }
     /**
      * Returns the H value for the state by returning converting to matrix and getting square distance
      * @return
