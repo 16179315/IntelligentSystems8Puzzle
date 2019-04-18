@@ -1,48 +1,124 @@
+package com.ohora;
 import javax.swing.JOptionPane;
 import java.util.*;
 
-public class is16179315 {
-
-    // TODO update size so that puzzle can be any size
-    public static final int NUMBER_OF_ROWS = 3;
-    public static final int SIZE_OF_PUZZLE = NUMBER_OF_ROWS*NUMBER_OF_ROWS;
-
-    private static int[]squaresAtRow1OfPuzzle = new int[SIZE_OF_PUZZLE];
-    public static int[] squaresAtRowLastOfPuzzle= new int[SIZE_OF_PUZZLE];
-    public static int[] squaresAtColumn1OfPuzzle= new int[SIZE_OF_PUZZLE];
-    public static int[] squaresAtColumnLastOfPuzzle= new int[SIZE_OF_PUZZLE];
-
-    public static int[] startState = new int[SIZE_OF_PUZZLE];
-    public static int[] endState = new int[SIZE_OF_PUZZLE];
-    public static int[][] endStateMatrix = new int[NUMBER_OF_ROWS][NUMBER_OF_ROWS];
+public class Main {
 
     public static void main(String[] args) {
-        State.setCurrentIdCount(0);
-        findLocationOfUsefulPieces();
-
-        startState = receiveInput("start");
-        endState = receiveInput("end");
-
-
-        endStateMatrix = convertToMatrix(endState);
-
+        initialiseStateVariables();
         runAlgorithm();
-
-//        int[] test = {0,1,2,3,4,5,6,7,8};
-//        System.out.println(calculateHForStateAgainstEndState(test));
-
-//        Integer[] possibleSwaps = findPossibleSwaps(startState);
-//        LinkedHashMap<Integer,Integer> possibleMovementsWithH = calculateHValueOfPossibleMovements(possibleSwaps);
-//        displayPossibleMovements(possibleMovementsWithH);
     }
 
-    private static void runAlgorithm(){
-        State S = new State(startState,0);
-        S.sethValue(calculateHForStateAgainstEndState(S.getState()));
-        S.setgValue(0);
-        S.updatefValue();
+    /**
+     * Takes in and sets up all the required info
+     */
+    private static void initialiseStateVariables() {
+        State.NUMBER_OF_ROWS = receiveRowInput();
+        State.SIZE_OF_PUZZLE =  State.NUMBER_OF_ROWS*State.NUMBER_OF_ROWS;
 
-        int[] E = endState;
+        State.findLocationOfUsefulPieces();
+
+        State.startState = receiveInput("start");
+        State.endState = receiveInput("end");
+        State.endStateMatrix = State.convertToMatrix(State.endState);
+    }
+
+    /**
+     * Takes in the number of rows in puzzle, eg for 8 puzzle, there are 3 rows
+     * @return number of rows
+     */
+    private static int receiveRowInput() {
+        boolean isValid = false;
+        int numberOfRows = 0;
+        String input = "";
+        while(!isValid){
+            input = JOptionPane.showInputDialog("Enter no. of Rows in puzzle, can be any size!");
+            if(!validateRows(input)) {
+                JOptionPane.showMessageDialog(null, "Invalid input", "Name", JOptionPane.ERROR_MESSAGE);
+            }
+            isValid = validateRows(input);
+        }
+        String[] inputArray = input.trim().split(" ");
+        numberOfRows = Integer.parseInt(inputArray[0]);
+        return numberOfRows;
+    }
+
+    /**
+     * Validates the number of rows input
+     * @param rows
+     * @return
+     */
+    private static boolean validateRows(String rows){
+        String[] inputStringArray = rows.trim().split(" ");
+        int[] numbers;
+        try {
+            numbers = Arrays.stream(inputStringArray).mapToInt(Integer::parseInt).toArray();
+        } catch(NumberFormatException e){
+            return false;
+        }
+        if(numbers.length==1){
+            return true;
+        }
+        else{
+            return false;
+        }
+    }
+    /**
+     * Receives Input and returns valid configuration
+     * @param requestedState
+     * @return
+     */
+    private static int[] receiveInput(String requestedState) {
+        String input = "";
+        int[] intArray;
+        boolean invalidInput = true;
+
+        while (invalidInput) {
+            input = JOptionPane.showInputDialog("Please enter the " + requestedState + " state of the puzzle");
+            if(!validateInput(input)) {
+                JOptionPane.showMessageDialog(null, "Invalid input", "Name", JOptionPane.ERROR_MESSAGE);
+            }
+            invalidInput = !validateInput(input);
+        }
+        String[] inputArray = input.trim().split(" ");
+        intArray = Arrays.stream(inputArray).mapToInt(Integer::parseInt).toArray();
+
+        return intArray;
+    }
+
+    /**
+     * Checks if all numbers are unique and in the desired range
+     * @param inputString
+     * @return
+     */
+
+    private static boolean validateInput(String inputString) {
+        String[] inputStringArray = inputString.trim().split(" ");
+        int[] numbers;
+        try {
+            numbers = Arrays.stream(inputStringArray).mapToInt(Integer::parseInt).toArray();
+        } catch(NumberFormatException e){
+            return false;
+        }
+        Set<Integer> uniqueNumbers = new HashSet<Integer>();
+        for(int number : numbers) {
+            if (uniqueNumbers.contains(number) || (number < 0) || number > State.SIZE_OF_PUZZLE - 1) {
+                return false;
+            }
+            uniqueNumbers.add(number);
+        }
+        if(uniqueNumbers.size() != State.SIZE_OF_PUZZLE){
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Runs the A* algorithm based on the input states
+     */
+    private static void runAlgorithm(){
+        State S = new State(State.startState,null);
+        int[] E = State.endState;
         State C = S;
 
         ArrayList<State> open = new ArrayList<>();
@@ -60,10 +136,16 @@ public class is16179315 {
             open.remove(C);
         }
 
-        printOutPath(C,closed);
+        System.out.println(printOutPath(C,closed));
 
     }
 
+    /**
+     * Adds any children in X to open if they are not in closed
+     * @param X
+     * @param open
+     * @param closed
+     */
     private static void addChildrenToOpenIfNotClosed(ArrayList<State> X, ArrayList<State> open, ArrayList<State> closed) {
         for(int i = 0;i<X.size();i++){
             boolean closedContainsState = false;
@@ -78,21 +160,30 @@ public class is16179315 {
         }
     }
 
-    private static void printOutPath(State c,ArrayList<State> closed) {
-        do{
-            System.out.println(c.toString());
-            for(int i =0;i<closed.size();i++){
-                if(c.getParentId() == closed.get(i).getId()){
-                    c = closed.get(i);
-                }
-            }
-            //first state has id 1
-        }while(c.getId() != 1);
+    /**
+     * Prints out the path taken to solve the A* algo by following each state objects parent
+     * @param c
+     * @param closed
+     * @return
+     */
+    private static String printOutPath(State c,ArrayList<State> closed) {
+        String out = "";
+        while(c.getState() != State.startState){
+            out = c.toString() + out;
+            c = c.getParent();
+        }
+        out = c.toString() + out;
+
+        return out;
     }
 
+    /**
+     * Finds the state with the smallest F(n) in the open list
+     * @param open
+     * @return
+     */
     private static State findMinimumfInOpen(ArrayList<State> open) {
-        State temp = new State(null,-1);
-        temp.setfValue(Integer.MAX_VALUE);
+        State temp = open.get(0);
         for(int i=0;i<open.size();i++){
             if(open.get(i).getfValue() < temp.getfValue()){
                 temp = open.get(i);
@@ -102,6 +193,11 @@ public class is16179315 {
         return temp;
     }
 
+    /**
+     * Finds all the possible children from the current state
+     * @param currentState
+     * @return array list of states containing children of param
+     */
     private static ArrayList<State> getChildrenOfCurrentState(State currentState)
     {
         ArrayList<State> children = new ArrayList<>();
@@ -110,11 +206,7 @@ public class is16179315 {
         for (int i = 0; i < possibleSwaps.length; i++) {
             if (possibleSwaps[i] != null) {
                 int[] appliedState = applyPossibleSwapToCurrentState(possibleSwaps[i], currentState.getState());
-
-                State child = new State(appliedState,currentState.getId());
-                child.sethValue(calculateHForStateAgainstEndState(child.getState()));
-                child.setgValue(currentState.getgValue()+1);
-                child.updatefValue();
+                State child = new State(appliedState,currentState);
 
                 children.add(child);
             }
@@ -125,113 +217,11 @@ public class is16179315 {
 
 
     /**
-     * Receives a state in array form and converts it to a matrix
-     * @param endState
-     * @return
-     */
-    private static int[][] convertToMatrix(int[] endState) {
-        int[][] matrix = new int[NUMBER_OF_ROWS][NUMBER_OF_ROWS];
-        int index = 0;
-        for(int i = 0;i<NUMBER_OF_ROWS;i++){
-            for(int j =0;j<NUMBER_OF_ROWS;j++){
-                matrix[i][j] = endState[index];
-                index++;
-            }
-        }
-
-        return matrix;
-    }
-
-    /**
-     * Returns key value pair of possible movement along with h value
-     * - loops through possible swaps
-     * - gets state if swap applied
-     * - get h value of state
-     * @param possibleSwaps
-     * @return
-     */
-    private static LinkedHashMap<Integer, Integer> calculateHValueOfPossibleMovements(Integer[] possibleSwaps) {
-        //TODO will have to update to apply to current state not just start
-        LinkedHashMap<Integer,Integer> possibleMovementsWithHValue = new LinkedHashMap<>();
-        for(int i =0;i<possibleSwaps.length;i++){
-            if(possibleSwaps[i] != null){
-                int[] appliedState = applyPossibleSwapToStartState(possibleSwaps[i]);
-                int hValueForState = calculateHForStateAgainstEndState(appliedState);
-                possibleMovementsWithHValue.put(possibleSwaps[i],hValueForState);
-            }
-            else{
-                //no possible movement, used sizeofpuzzle as cant have two identical keys
-                possibleMovementsWithHValue.put(SIZE_OF_PUZZLE+i,null);
-            }
-        }
-        return possibleMovementsWithHValue;
-    }
-
-    /**
-     * Returns the H value for the state by returning converting to matrix and getting square distance
-     * @param appliedState
-     * @return
-     */
-    private static int calculateHForStateAgainstEndState(int[] appliedState) {
-        int hValue = 0;
-        int[][] convertedAppliedState = convertToMatrix(appliedState);
-
-        //for each tile in puzzle
-        for(int tile =0;tile<SIZE_OF_PUZZLE;tile++){
-            hValue += calculateIndividualTileHValue(tile,convertedAppliedState);
-        }
-        return hValue;
-    }
-
-    private static int calculateIndividualTileHValue(int tile, int[][] convertedAppliedState) {
-        int xindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"x");
-        int yindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"y");
-        int xindexOfTileAppliedState = getIndexOfTile(tile,convertedAppliedState,"x");
-        int yindexOfTileAppliedState = getIndexOfTile(tile, convertedAppliedState,"y");
-        int diff1 = Math.abs(xindexOfTileAppliedState - xindexOfTileEndState);
-        int diff2 = Math.abs(yindexOfTileEndState - yindexOfTileAppliedState);
-        return diff1+diff2;
-    }
-
-    /**
-     * Returns the desired  co ord of the designated tile
-     * @param tile
-     * @param stateMatrix
-     * @return
-     */
-    private static int getIndexOfTile(int tile, int[][] stateMatrix,String coOrd) {
-        for(int i = 0;i<NUMBER_OF_ROWS;i++){
-            for(int j = 0;j<NUMBER_OF_ROWS;j++){
-                if(stateMatrix[i][j] == tile){
-                    if(coOrd == "x"){
-                        return i;
-                    }
-                    else{
-                        return j;
-                    }
-                }
-            }
-        }
-        return 0;
-    }
-
-
-    /**
-     * Returns the puzzle state if the passed swap index was applied
+     * Swaps the 0 value in the currentState based on the first param
      * @param possibleSwap
-     * @return
+     * @param currentState
+     * @return the new state after swap applied
      */
-    private static int[] applyPossibleSwapToStartState(Integer possibleSwap) {
-        int[] state = startState.clone();
-        int temp = 0;
-        int indexOfZero = findIndexOfZeroInState(startState);
-        temp = startState[possibleSwap];
-        state[possibleSwap] = 0;
-        state[indexOfZero] = temp;
-        return state;
-    }
-
-
     private static int[] applyPossibleSwapToCurrentState(Integer possibleSwap,int[] currentState) {
         int[] state = currentState.clone();
         int temp = 0;
@@ -240,90 +230,6 @@ public class is16179315 {
         state[possibleSwap] = 0;
         state[indexOfZero] = temp;
         return state;
-    }
-
-
-
-    /**
-     * Loops through available movements and displays possible movements in JOptionPane along with corresponding h value
-     * @param possibleSwaps
-     */
-    private static void displayPossibleMovements(HashMap<Integer,Integer> possibleSwaps) {
-        String outputString = "";
-        int direction = 0;
-        Iterator<Map.Entry<Integer, Integer>> iterator = possibleSwaps.entrySet().iterator();
-        while(iterator.hasNext()){
-            Map.Entry<Integer, Integer> next = iterator.next();
-            if(next.getValue() != null){
-                switch(direction){
-                    case(0): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"South"); break;
-                    case(1): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"West"); break;
-                    case(2): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"North"); break;
-                    case(3): outputString += formatPossibleMovementForDisplay(next.getKey(),next.getValue(),"East"); break;
-                }
-            }
-            direction++;
-        }
-        JOptionPane.showMessageDialog(null, outputString, "Available Moves", JOptionPane.INFORMATION_MESSAGE);
-    }
-
-
-
-
-
-
-
-
-    /**
-     * Reformats the possible movement for the output dialogue
-     * @param possibleSwap
-     * @param direction
-     * @return
-     */
-    private static String formatPossibleMovementForDisplay(Integer possibleSwap,Integer hValue, String direction) {
-        return "Can move " + String.valueOf(startState[possibleSwap]) + " to the " + direction + " with a h Value of " + hValue + "\n";
-    }
-
-    /**
-     * Based on the size of the array locates the locations of the pieces in the first and last row and column
-     * Required for the checking what are the next possible legal moves
-     */
-    private static void findLocationOfUsefulPieces() {
-        int[] puzzle = new int[SIZE_OF_PUZZLE];
-
-        int row = 0;
-        int col = 0;
-        int row1Index = 0;
-        int rowLastIndex = 0;
-        int col1Index = 0;
-        int colLastIndex = 0;
-
-        for(int i =0;i<=SIZE_OF_PUZZLE;i+=NUMBER_OF_ROWS){
-            row++;
-            for(int j = i; j<= NUMBER_OF_ROWS-1+i && j != SIZE_OF_PUZZLE; j++){
-                col++;
-                //System.out.print("i:" + String.valueOf(i) + " j:" + String.valueOf(j)+  " " +String.valueOf(puzzle[j]) + " ");
-                if(row == 1){
-                    squaresAtRow1OfPuzzle[row1Index] = j;
-                    row1Index++;
-                }
-                if(col == 1){
-                    squaresAtColumn1OfPuzzle[col1Index] = j;
-                    col1Index++;
-                }
-                if(row == NUMBER_OF_ROWS){
-                    squaresAtRowLastOfPuzzle[rowLastIndex] = j;
-                    rowLastIndex++;
-                }
-                if(col == NUMBER_OF_ROWS){
-                    squaresAtColumnLastOfPuzzle[colLastIndex] = j;
-                    colLastIndex++;
-                }
-            }
-            col=0;
-            // System.out.print("\n");
-        }
-
     }
 
 
@@ -340,25 +246,25 @@ public class is16179315 {
     private static Integer[] findPossibleSwaps(int[] state) {
         int indexOfZero = findIndexOfZeroInState(state);
         Integer[] possibleSwaps = new Integer[4];
-        if(zeroIsContainedInGivenArray(indexOfZero,squaresAtColumn1OfPuzzle)){
+        if(zeroIsContainedInGivenArray(indexOfZero,State.squaresAtColumn1OfPuzzle)){
             possibleSwaps[1] = indexOfZero + 1;
         }
-        else if(zeroIsContainedInGivenArray(indexOfZero,squaresAtColumnLastOfPuzzle)){
+        else if(zeroIsContainedInGivenArray(indexOfZero,State.squaresAtColumnLastOfPuzzle)){
             possibleSwaps[3] = indexOfZero - 1;
         }
         else{
             possibleSwaps[1] = indexOfZero+1;
             possibleSwaps[3] = indexOfZero-1;
         }
-        if(zeroIsContainedInGivenArray(indexOfZero,squaresAtRow1OfPuzzle)){
-            possibleSwaps[2] = indexOfZero+NUMBER_OF_ROWS;
+        if(zeroIsContainedInGivenArray(indexOfZero,State.squaresAtRow1OfPuzzle)){
+            possibleSwaps[2] = indexOfZero+State.NUMBER_OF_ROWS;
         }
-        else if(zeroIsContainedInGivenArray(indexOfZero,squaresAtRowLastOfPuzzle)){
-            possibleSwaps[0] = indexOfZero - NUMBER_OF_ROWS;
+        else if(zeroIsContainedInGivenArray(indexOfZero,State.squaresAtRowLastOfPuzzle)){
+            possibleSwaps[0] = indexOfZero - State.NUMBER_OF_ROWS;
         }
         else {
-            possibleSwaps[2] = indexOfZero + NUMBER_OF_ROWS;
-            possibleSwaps[0] = indexOfZero -NUMBER_OF_ROWS;
+            possibleSwaps[2] = indexOfZero + State.NUMBER_OF_ROWS;
+            possibleSwaps[0] = indexOfZero -State.NUMBER_OF_ROWS;
         }
         return possibleSwaps;
     }
@@ -395,152 +301,203 @@ public class is16179315 {
         }
         return contains;
     }
-
-    /**
-     * Receives Input and returns valid configuration
-     * @param requestedState
-     * @return
-     */
-    private static int[] receiveInput(String requestedState) {
-        String input = "";
-        int[] intArray;
-        boolean invalidInput = true;
-
-
-        while (invalidInput) {
-            input = JOptionPane.showInputDialog("Please enter the " + requestedState + " state of the puzzle");
-            if(!validateInput(input)) {
-                JOptionPane.showMessageDialog(null, "Invalid input", "Name", JOptionPane.ERROR_MESSAGE);
-            }
-            invalidInput = !validateInput(input);
-        }
-        String[] inputArray = input.trim().split(" ");
-        intArray = Arrays.stream(inputArray).mapToInt(Integer::parseInt).toArray();
-
-        return intArray;
-    }
-
-    /**
-     * Checks if all numbers are unique and in the desired range
-     * @param inputString
-     * @return
-     */
-    private static boolean validateInput(String inputString) {
-        String[] inputStringArray = inputString.trim().split(" ");
-        int[] numbers;
-        try {
-            numbers = Arrays.stream(inputStringArray).mapToInt(Integer::parseInt).toArray();
-        } catch(NumberFormatException e){
-            return false;
-        }
-        Set<Integer> uniqueNumbers = new HashSet<Integer>();
-        for(int number : numbers) {
-            if (uniqueNumbers.contains(number) || (number < 0) || number > SIZE_OF_PUZZLE - 1) {
-                return false;
-            }
-            uniqueNumbers.add(number);
-        }
-        if(uniqueNumbers.size() != SIZE_OF_PUZZLE){
-            return false;
-        }
-        return true;
-    }
-
-
 }
 
 class State{
+
+    //Input data
+    public static int NUMBER_OF_ROWS = 0;
+    public static int SIZE_OF_PUZZLE = 0;
+    public static int[] startState;
+    public static int[] endState;
+    public static int[][] endStateMatrix;
+
+    //Required to check next possible moves
+    public static int[]squaresAtRow1OfPuzzle;
+    public static int[] squaresAtRowLastOfPuzzle;
+    public static int[] squaresAtColumn1OfPuzzle;
+    public static int[] squaresAtColumnLastOfPuzzle;
+
+
+    //All required state data
     private int[] state;
-    private int id;
-    private int parentId;
-    private static int currentIdCount;
+    private State parent;
     private int hValue;
     private int gValue;
     private int fValue;
 
-    public State(int[] state, int parentId) {
-        currentIdCount++;
+    /**
+     * Constructor which sets the g value based off the parent and updates the h value based on given state
+     * @param state
+     * @param parentState
+     */
+    public State(int[] state,State parentState) {
         this.state = state;
-        this.id = currentIdCount;
-        this.parentId = parentId;
+        this.parent = parentState;
+        hValue = calculateHForStateAgainstEndState();
 
+        if(parentState != null){
+            this.gValue = parentState.getgValue()+1;
+        }
 
+        this.fValue = gValue + hValue;
     }
 
-    public static void setCurrentIdCount(int currentIdCount) {
-        State.currentIdCount = currentIdCount;
-    }
 
     public String toString(){
-        String out = "state: " + printArray(state) + "\n";
-        out += "id:" + id + "\n";
-        out += "parentId:" + parentId + "\n";
-        out += "currentIdCount:" + currentIdCount + "\n";
-        out += "hValue:" + hValue + "\n";
-        out += "gValue:" + gValue + "\n";
-        out += "fValue:" + fValue + "\n";
+        String out = printArray(state) ;
         return out;
     }
 
+    /**
+     * Prints array in grid format
+     * @param state
+     * @return
+     */
     private String printArray(int[] state) {
-        String out = "[";
-        for(int i = 0;i<state.length;i++){
-            out+=state[i] + ",";
+        int [] tempMatrix = this.getState();
+        String stateOutput = "";
+        int indexCounter = 0;
+        for(int i = 0; i<NUMBER_OF_ROWS; i++){
+            for(int j=0; j<NUMBER_OF_ROWS; j++){
+                stateOutput += tempMatrix[indexCounter] + " " ;
+                indexCounter++;
+            }
+            stateOutput+= "\n";
         }
-        out += "]";
-        return out;
+        return stateOutput + "\n";
     }
 
+    /**
+     * Receives a state in array form and converts it to a matrix
+     * @param endState
+     * @return
+     */
+    public static int[][] convertToMatrix(int[] endState) {
+        int[][] matrix = new int[NUMBER_OF_ROWS][NUMBER_OF_ROWS];
+        int index = 0;
+        for(int i = 0;i<NUMBER_OF_ROWS;i++){
+            for(int j =0;j<NUMBER_OF_ROWS;j++){
+                matrix[i][j] = endState[index];
+                index++;
+            }
+        }
 
-    public int getParentId() {
-        return parentId;
+        return matrix;
     }
 
-    public void setParentId(int parentId) {
-        this.parentId = parentId;
+    /**
+     * Returns the H value for the state by returning converting to matrix and getting square distance
+     * @return
+     */
+    private int calculateHForStateAgainstEndState() {
+        int hValue = 0;
+        int[][] convertedAppliedState = convertToMatrix(this.state);
+
+        //for each tile in puzzle
+        for(int tile =0;tile<SIZE_OF_PUZZLE;tile++){
+            hValue += calculateIndividualTileHValue(tile,convertedAppliedState);
+        }
+        return hValue;
     }
 
-    public int getId() {
-        return id;
+    /**
+     * For a single tile, will find the X & Y difference compared to the end state
+     * @param tile
+     * @param convertedAppliedState
+     * @return
+     */
+    private int calculateIndividualTileHValue(int tile, int[][] convertedAppliedState) {
+        int xindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"x");
+        int yindexOfTileEndState = getIndexOfTile(tile,endStateMatrix,"y");
+        int xindexOfTileAppliedState = getIndexOfTile(tile,convertedAppliedState,"x");
+        int yindexOfTileAppliedState = getIndexOfTile(tile, convertedAppliedState,"y");
+        int diff1 = Math.abs(xindexOfTileAppliedState - xindexOfTileEndState);
+        int diff2 = Math.abs(yindexOfTileEndState - yindexOfTileAppliedState);
+        return diff1+diff2;
     }
 
-    public void setId(int id) {
-        this.id = id;
+    /**
+     * Returns the desired  co ord of the designated tile
+     * @param tile
+     * @param stateMatrix
+     * @return
+     */
+    private int getIndexOfTile(int tile, int[][] stateMatrix,String coOrd) {
+        for(int i = 0;i<NUMBER_OF_ROWS;i++){
+            for(int j = 0;j<NUMBER_OF_ROWS;j++){
+                if(stateMatrix[i][j] == tile){
+                    if(coOrd == "x"){
+                        return i;
+                    }
+                    else{
+                        return j;
+                    }
+                }
+            }
+        }
+        return 0;
     }
+
+    /**
+     * Based on the size of the array locates the locations of the pieces in the first and last row and column
+     * Required for the checking what are the next possible legal moves
+     */
+    public static void findLocationOfUsefulPieces() {
+        int[] puzzle = new int[State.SIZE_OF_PUZZLE];
+
+        int row = 0;
+        int col = 0;
+        int row1Index = 0;
+        int rowLastIndex = 0;
+        int col1Index = 0;
+        int colLastIndex = 0;
+
+        squaresAtRow1OfPuzzle = new int[State.SIZE_OF_PUZZLE];
+        squaresAtColumn1OfPuzzle= new int[State.SIZE_OF_PUZZLE];
+        squaresAtColumnLastOfPuzzle = new int[State.SIZE_OF_PUZZLE];
+        squaresAtRowLastOfPuzzle = new int[State.SIZE_OF_PUZZLE];
+
+        for(int i =0;i<=State.SIZE_OF_PUZZLE;i+=State.NUMBER_OF_ROWS){
+            row++;
+            for(int j = i; j<= State.NUMBER_OF_ROWS-1+i && j != State.SIZE_OF_PUZZLE; j++){
+                col++;
+                if(row == 1){
+                    squaresAtRow1OfPuzzle[row1Index] = j;
+                    row1Index++;
+                }
+                if(col == 1){
+                    squaresAtColumn1OfPuzzle[col1Index] = j;
+                    col1Index++;
+                }
+                if(row == State.NUMBER_OF_ROWS){
+                    squaresAtRowLastOfPuzzle[rowLastIndex] = j;
+                    rowLastIndex++;
+                }
+                if(col == State.NUMBER_OF_ROWS){
+                    squaresAtColumnLastOfPuzzle[colLastIndex] = j;
+                    colLastIndex++;
+                }
+            }
+            col=0;
+        }
+
+    }
+
 
     public int[] getState() {
         return state;
-    }
-
-    public void setState(int[] state) {
-        this.state = state;
-    }
-
-    public void sethValue(int hValue) {
-        this.hValue = hValue;
-    }
-
-    public int gethValue() {
-        return hValue;
     }
 
     public int getgValue() {
         return gValue;
     }
 
-    public void setgValue(int gValue) {
-        this.gValue = gValue;
-    }
-
     public int getfValue() {
         return fValue;
     }
 
-    public void setfValue(int fValue) {
-        this.fValue = fValue;
-    }
-
-    public void updatefValue() {
-        this.fValue = this.gValue+this.hValue;
+    public State getParent() {
+        return parent;
     }
 }
