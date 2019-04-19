@@ -69,6 +69,7 @@ public class Main extends Application {
                 Runnable updater = new Runnable() {
                     @Override
                     public void run() {
+                        grid.getChildren().clear();
                         reDrawBoard(State.pathTaken.get(State.pathCounter),grid);
                     }
                 };
@@ -116,26 +117,30 @@ public class Main extends Application {
                         int currentNumber = num[row][col];
                         int positionInEndState = State.findPositionOfNumInEndStateMatrix(currentNumber);
                         Color colorOfRect = colors[positionInEndState%6];
+                        if(currentNumber != 0) {
+                            Rectangle rect = new Rectangle(TILE_SIZE, TILE_SIZE, colorOfRect);
+                            //Setting the height and width of the arc
+                            rect.setArcWidth(30.0);
+                            rect.setArcHeight(20.0);
 
-                        Rectangle rect = new Rectangle(TILE_SIZE, TILE_SIZE, colorOfRect);
-                        //Setting the height and width of the arc
-                        rect.setArcWidth(30.0);
-                        rect.setArcHeight(20.0);
+                            //shadow
+                            rect.setStroke(Color.BLACK);
+                            rect.setStrokeWidth(2);
+                            DropShadow e = new DropShadow();
+                            e.setWidth(10);
+                            e.setHeight(10);
+                            e.setOffsetX(5);
+                            e.setOffsetY(5);
+                            e.setRadius(10);
+                            rect.setEffect(e);
 
-                        //shadow
-                        rect.setStroke(Color.BLACK);
-                        rect.setStrokeWidth(2);
-                        DropShadow e = new DropShadow();
-                        e.setWidth(10);
-                        e.setHeight(10);
-                        e.setOffsetX(5);
-                        e.setOffsetY(5);
-                        e.setRadius(10);
-                        rect.setEffect(e);
-
-                        StackPane stack = new StackPane();
-                        stack.getChildren().addAll(rect, text);
-                        grid.add(stack, col, row);
+                            StackPane stack = new StackPane();
+                            stack.getChildren().addAll(rect, text);
+                            grid.add(stack, col, row);
+                        }
+                        else{
+                            grid.add(new StackPane(),col,row);
+                        }
                     }
                 }
             }
